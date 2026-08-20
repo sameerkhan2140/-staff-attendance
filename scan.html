@@ -184,11 +184,11 @@
         },
         function (error) {
           let errMsg = 'Location access denied. GPS is required to verify you are at Ra Marama House.';
-          if (error.code === error.POSITION_UNAVAILABLE) errMsg = 'GPS signal unavailable. Please try again outside or near a window.';
-          if (error.code === error.TIMEOUT) errMsg = 'GPS timeout. Please reload and try again.';
+          if (error.code === error.POSITION_UNAVAILABLE) errMsg = 'GPS signal unavailable. Make sure location services are enabled on your device.';
+          if (error.code === error.TIMEOUT) errMsg = 'GPS timeout. Please check your signal and try again.';
           showError({ message: errMsg });
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 5000 }
       );
     }
 
