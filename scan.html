@@ -115,7 +115,8 @@
   </div>
 
   <script>
-    // ⚠️ Active Web App Endpoint URL:
+    // ⚠️ EDIT THIS — paste your Apps Script Web app URL here (ends in /exec).
+    // Deploy → Manage deployments → copy the "Web app" URL.
     const API_URL = 'https://script.google.com/macros/s/AKfycbzVyWjB9EUNhYk9iqqupxCwj6epv3qTzUdMckzcvExFIMObwmU4pK6Df0c8w_qXEOmX/exec';
 
     const STORAGE_KEY = 'staffAttendanceProfile';
@@ -200,6 +201,9 @@
         return;
       }
 
+      // Content-Type text/plain (not application/json) on purpose: this keeps the
+      // request a CORS "simple request" so the browser skips a preflight OPTIONS
+      // call, which Apps Script web apps can't handle.
       fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
