@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Attendance</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 32px 24px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+      text-align: center;
+    }
+    h1 { font-size: 20px; margin: 0 0 8px; color: #0f172a; }
+    p.sub { color: #64748b; font-size: 14px; margin: 0 0 24px; }
+    input {
+      width: 100%;
+      padding: 14px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      border: 1.5px solid #e2e8f0;
+      font-size: 16px;
+    }
+    input:focus { outline: none; border-color: #2563eb; }
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:active { background: #1d4ed8; }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid #e2e8f0;
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .result-icon {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px;
+      color: white;
+    }
+    .in { background: #16a34a; }
+    .out { background: #d97706; }
+    .err { background: #dc2626; }
+    .result-action { font-size: 22px; font-weight: 700; margin: 4px 0; color: #0f172a; }
+    .result-name { font-size: 16px; color: #334155; margin: 0; }
+    .result-time { font-size: 14px; color: #64748b; margin-top: 4px; }
+    .reset-link {
+      display: inline-block;
+      margin-top: 24px;
+      font-size: 12px;
+      color: #94a3b8;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <div id="loading">
+      <div class="spinner"></div>
+      <p class="sub">Checking this device…</p>
+    </div>
+
+    <div id="registerForm" style="display:none">
+      <h1>Welcome 👋</h1>
+      <p class="sub">First time on this phone — set up once, then just scan.</p>
+      <input id="staffId" placeholder="Staff ID / Employee No." autocomplete="off">
+      <input id="staffName" placeholder="Full Name" autocomplete="off">
+      <button onclick="register()">Save &amp; Clock In</button>
+    </div>
+
+    <div id="result" style="display:none"></div>
+
+    <div id="resetWrap" style="display:none">
+      <span class="reset-link" onclick="resetDevice()">Not you? Reset this device</span>
+    </div>
+  </div>
+
+  <script>
+    // ⚠️ EDIT THIS — paste your Apps Script Web app URL here (ends in /exec).
+    // Deploy → Manage deployments → copy the "Web app" URL.
+    const API_URL = 'https://script.google.com/macros/s/AKfycbww1QAnSegR4chndBwYq16i7wrv0J-OoiV2MLpLaU5t-uyRivxMORSlgysrtVxXHTwu/exec';
+
+    const STORAGE_KEY = 'staffAttendanceProfile';
+
+    window.onload = function () {
+      const cached = localStorage.getItem(STORAGE_KEY);
+      if (cached) {
+        try {
+          const profile = JSON.parse(cached);
+          clockAction(profile.staffId, profile.name);
+        } catch (e) {
+          localStorage.removeItem(STORAGE_KEY);
+          showRegisterForm();
+        }
+      } else {
+        showRegisterForm();
+      }
+    };
+
+    function showRegisterForm() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('registerForm').style.display = 'block';
+    }
+
+    function register() {
+      const staffId = document.getElementById('staffId').value.trim();
+      const name = document.getElementById('staffName').value.trim();
+      if (!staffId || !name) { alert('Please fill in both fields.'); return; }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ staffId, name }));
+      document.getElementById('registerForm').style.display = 'none';
+      document.getElementById('loading').style.display = 'block';
+      clockAction(staffId, name);
+    }
+
+    function clockAction(staffId, name) {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('loading').querySelector('.sub').textContent = 'Recording attendance…';
+
+      if (!API_URL || API_URL.indexOf('PASTE_YOUR') === 0) {
+        showError({ message: 'This page is not set up yet — edit scan.html and paste your Apps Script Web app URL into API_URL.' });
+        return;
+      }
+
+      // Content-Type text/plain (not application/json) on purpose: this keeps the
+      // request a CORS "simple request" so the browser skips a preflight OPTIONS
+      // call, which Apps Script web apps can't handle.
+      fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ staffId, name })
+      })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data.success) {
+            showResult(data);
+          } else {
+            showError({ message: data.error || 'Unknown error' });
+          }
+        })
+        .catch(function (err) { showError({ message: err.message }); });
+    }
+
+    function showResult(res) {
+      document.getElementById('loading').style.display = 'none';
+      const el = document.getElementById('result');
+      const isIn = res.action === 'Clock In';
+      el.innerHTML =
+        '<div class="result-icon ' + (isIn ? 'in' : 'out') + '">' + (isIn ? '✓' : '⏱') + '</div>' +
+        '<div class="result-action">' + res.action + '</div>' +
+        '<p class="result-name">' + escapeHtml(res.name) + '</p>' +
+        '<p class="result-time">' + res.date + ' at ' + res.time + '</p>';
+      el.style.display = 'block';
+      document.getElementById('resetWrap').style.display = 'block';
+    }
+
+    function showError(err) {
+      document.getElementById('loading').style.display = 'none';
+      const el = document.getElementById('result');
+      el.innerHTML =
+        '<div class="result-icon err">!</div>' +
+        '<div class="result-action">Could not record</div>' +
+        '<p class="result-name">' + escapeHtml(err.message) + '</p>';
+      el.style.display = 'block';
+      document.getElementById('resetWrap').style.display = 'block';
+    }
+
+    function resetDevice() {
+      if (confirm('Clear the saved profile on this phone?')) {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+      }
+    }
+
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+  </script>
+</body>
+</html>
