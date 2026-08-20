@@ -237,9 +237,21 @@
       document.getElementById('loading').style.display = 'none';
       const el = document.getElementById('result');
       const isIn = res.action === 'Clock In';
+      let statusTag = '';
+      if (isIn && res.time) {
+        const parts = String(res.time).replace(/[^\d:]/g, '').split(':');
+        if (parts.length >= 2) {
+          const h = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10);
+          const totalSec = h * 3600 + m * 60;
+          if (totalSec < 8 * 3600) statusTag = ' <span style="font-size:14px; font-weight:normal; color:#16a34a;">(Early Punch In)</span>';
+          else if (totalSec > 8 * 3600) statusTag = ' <span style="font-size:14px; font-weight:normal; color:#dc2626;">(Late Punch In)</span>';
+          else statusTag = ' <span style="font-size:14px; font-weight:normal; color:#2563eb;">(On Time)</span>';
+        }
+      }
       el.innerHTML =
         '<div class="result-icon ' + (isIn ? 'in' : 'out') + '">' + (isIn ? '✓' : '⏱') + '</div>' +
-        '<div class="result-action">' + res.action + '</div>' +
+        '<div class="result-action">' + res.action + statusTag + '</div>' +
         '<p class="result-name">' + escapeHtml(res.name) + '</p>' +
         '<p class="result-time">' + res.date + ' at ' + res.time + '</p>';
       el.style.display = 'block';
