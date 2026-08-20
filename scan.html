@@ -233,10 +233,24 @@
     function showError(err) {
       document.getElementById('loading').style.display = 'none';
       const el = document.getElementById('result');
-      el.innerHTML =
-        '<div class="result-icon err">!</div>' +
-        '<div class="result-action">Could not record</div>' +
-        '<p class="result-name">' + escapeHtml(err.message) + '</p>';
+      
+      let html = '<div class="result-icon err">!</div>' +
+                 '<div class="result-action">Could not record</div>' +
+                 '<p class="result-name">' + escapeHtml(err.message) + '</p>';
+                 
+      if (err.message && (err.message.includes('denied') || err.message.includes('Location access denied'))) {
+        html += '<div style="margin-top: 16px; padding: 12px; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; font-size: 13px; text-align: left; color: #991b1b;">' +
+                '  <strong style="display:block; margin-bottom: 6px; font-size:14px;">How to enable Location in Safari:</strong>' +
+                '  <ol style="margin: 0; padding-left: 18px; line-height: 1.5; font-size: 12px;">' +
+                '    <li>Tap the <strong>aA</strong> (or lock) icon on the left side of the web address bar.</li>' +
+                '    <li>Select <strong>Website Settings</strong>.</li>' +
+                '    <li>Tap <strong>Location</strong> and set it to <strong>Allow</strong>.</li>' +
+                '    <li>Reload the page and tap the clock button again.</li>' +
+                '  </ol>' +
+                '</div>';
+      }
+      
+      el.innerHTML = html;
       el.style.display = 'block';
       document.getElementById('resetWrap').style.display = 'block';
     }
