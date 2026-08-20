@@ -98,6 +98,12 @@
       <button onclick="register()">Save &amp; Clock In</button>
     </div>
 
+    <div id="confirmForm" style="display:none">
+      <h1>Confirm Clock ⏱️</h1>
+      <p class="sub" id="confirmWelcome">Welcome back!</p>
+      <button onclick="confirmClock()">Tap to Clock In/Out</button>
+    </div>
+
     <div id="result" style="display:none"></div>
 
     <div id="resetWrap" style="display:none">
@@ -111,13 +117,14 @@
     const API_URL = 'https://script.google.com/macros/s/AKfycbww1QAnSegR4chndBwYq16i7wrv0J-OoiV2MLpLaU5t-uyRivxMORSlgysrtVxXHTwu/exec';
 
     const STORAGE_KEY = 'staffAttendanceProfile';
+    let activeProfile = null; // Store globally when cached
 
     window.onload = function () {
       const cached = localStorage.getItem(STORAGE_KEY);
       if (cached) {
         try {
-          const profile = JSON.parse(cached);
-          clockAction(profile.staffId, profile.name);
+          activeProfile = JSON.parse(cached);
+          showConfirmForm(activeProfile);
         } catch (e) {
           localStorage.removeItem(STORAGE_KEY);
           showRegisterForm();
@@ -130,6 +137,21 @@
     function showRegisterForm() {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('registerForm').style.display = 'block';
+    }
+
+    function showConfirmForm(profile) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('confirmWelcome').innerHTML = 
+        'Welcome back, <strong>' + escapeHtml(profile.name) + '</strong>!<br><br>' +
+        'Please allow location access when prompted to verify you are at Ra Marama House.';
+      document.getElementById('confirmForm').style.display = 'block';
+      document.getElementById('resetWrap').style.display = 'block';
+    }
+
+    function confirmClock() {
+      if (!activeProfile) return;
+      document.getElementById('confirmForm').style.display = 'none';
+      clockAction(activeProfile.staffId, activeProfile.name);
     }
 
     function register() {
