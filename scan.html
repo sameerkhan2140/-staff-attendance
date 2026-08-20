@@ -195,7 +195,7 @@
       );
     }
 
-    function sendClockRequest(staffId, name, latitude, longitude) {
+    function sendClockRequest(staffId, name, latitude, longitude, confirmed) {
       if (!API_URL || API_URL.indexOf('PASTE_YOUR') === 0) {
         showError({ message: 'This page is not set up yet — edit scan.html and paste your Apps Script Web app URL into API_URL.' });
         return;
@@ -207,12 +207,25 @@
       fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ staffId, name, latitude, longitude })
+        body: JSON.stringify({ staffId, name, latitude, longitude, confirmed: !!confirmed })
       })
         .then(function (res) { return res.json(); })
         .then(function (data) {
           if (data.success) {
             showResult(data);
+          } else if (data.requireConfirmation) {
+            if (confirm(data.error)) {
+              document.getElementById('loading').style.display = 'block';
+              document.getElementById('loading').querySelector('.sub').textContent = 'Recording attendance…';
+              sendClockRequest(staffId, name, latitude, longitude, true);
+            } else {
+              document.getElementById('loading').style.display = 'none';
+              if (activeProfile) {
+                document.getElementById('confirmForm').style.display = 'block';
+              } else {
+                document.getElementById('registerForm').style.display = 'block';
+              }
+            }
           } else {
             showError({ message: data.error || 'Unknown error' });
           }
