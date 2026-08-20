@@ -108,7 +108,7 @@
   <script>
     // ⚠️ EDIT THIS — paste your Apps Script Web app URL here (ends in /exec).
     // Deploy → Manage deployments → copy the "Web app" URL.
-    const API_URL = 'https://script.google.com/macros/s/AKfycbww1QAnSegR4chndBwYq16i7wrv0J-OoiV2MLpLaU5t-uyRivxMORSlgysrtVxXHTwu/exec?page=admin';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbww1QAnSegR4chndBwYq16i7wrv0J-OoiV2MLpLaU5t-uyRivxMORSlgysrtVxXHTwu/exec';
 
     const STORAGE_KEY = 'staffAttendanceProfile';
 
@@ -144,8 +144,33 @@
 
     function clockAction(staffId, name) {
       document.getElementById('loading').style.display = 'block';
-      document.getElementById('loading').querySelector('.sub').textContent = 'Recording attendance…';
+      document.getElementById('loading').querySelector('.sub').textContent = 'Acquiring GPS location…';
 
+      if (!navigator.geolocation) {
+        showError({ message: 'GPS is not supported by your browser. Geolocation is required for attendance.' });
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        function (position) {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+          
+          document.getElementById('loading').querySelector('.sub').textContent = 'Recording attendance…';
+          
+          sendClockRequest(staffId, name, latitude, longitude);
+        },
+        function (error) {
+          let errMsg = 'Location access denied. GPS is required to verify you are at Ra Marama House.';
+          if (error.code === error.POSITION_UNAVAILABLE) errMsg = 'GPS signal unavailable. Please try again outside or near a window.';
+          if (error.code === error.TIMEOUT) errMsg = 'GPS timeout. Please reload and try again.';
+          showError({ message: errMsg });
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    function sendClockRequest(staffId, name, latitude, longitude) {
       if (!API_URL || API_URL.indexOf('PASTE_YOUR') === 0) {
         showError({ message: 'This page is not set up yet — edit scan.html and paste your Apps Script Web app URL into API_URL.' });
         return;
@@ -157,7 +182,7 @@
       fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ staffId, name })
+        body: JSON.stringify({ staffId, name, latitude, longitude })
       })
         .then(function (res) { return res.json(); })
         .then(function (data) {
