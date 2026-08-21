@@ -167,6 +167,21 @@
       clockAction(staffId, name);
     }
 
+    const OFFICE_LAT = -18.14417553485943;
+    const OFFICE_LON = 178.42678333558177;
+    const MAX_DISTANCE_METERS = 100;
+
+    function getDistanceMetersClient(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
     function clockAction(staffId, name) {
       document.getElementById('loading').style.display = 'block';
       document.getElementById('loading').querySelector('.sub').textContent = 'Acquiring GPS location…';
@@ -181,8 +196,13 @@
           const latitude = position.coords.latitude;
           const longitude = position.coords.longitude;
           
-          document.getElementById('loading').querySelector('.sub').textContent = 'Recording attendance…';
+          const dist = getDistanceMetersClient(latitude, longitude, OFFICE_LAT, OFFICE_LON);
+          if (dist > MAX_DISTANCE_METERS) {
+            showError({ message: 'Out of bounds! You are ' + Math.round(dist) + ' meters away from Ra Marama House. You must be within 100 meters to clock in/out.' });
+            return;
+          }
           
+          document.getElementById('loading').querySelector('.sub').textContent = 'Recording attendance…';
           sendClockRequest(staffId, name, latitude, longitude);
         },
         function (error) {
@@ -191,7 +211,7 @@
           if (error.code === error.TIMEOUT) errMsg = 'GPS timeout. Please check your signal and try again.';
           showError({ message: errMsg });
         },
-        { enableHighAccuracy: false, timeout: 15000, maximumAge: 5000 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     }
 
